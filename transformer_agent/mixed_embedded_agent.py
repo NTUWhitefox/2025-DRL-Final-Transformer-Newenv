@@ -67,13 +67,14 @@ class MixedEmbeddedAgent(nn.Module):
         super(MixedEmbeddedAgent, self).__init__()
 
         # Presently arbitrarily chosen to match original size, except for position.
+        padding = 5
         self.max_embed_value = map_size
         self.map_size = map_size
         self.embed_size = embed_size
         self.device = device
         self.num_heads = num_heads
         self.num_layers = num_layers
-        self.input_size = self.embed_size + 27  # position embedding size + size of other features
+        self.input_size = self.embed_size + 29  # position embedding size + size of other features
         self.padding = padding
         self.padded_size = self.input_size + padding
         self.map_embedder = nn.Embedding(self.max_embed_value, self.embed_size)

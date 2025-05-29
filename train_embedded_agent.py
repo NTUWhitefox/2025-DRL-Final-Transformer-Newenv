@@ -71,7 +71,7 @@ envs, ai_opponent_names = create_envs(vars(args))
 
 mapsize = args.map_size ** 2
 # Used for transformers
-observation_size = (1 + 5 + 5 + 3 + 8 + 6)  # 27 features + 1 for position
+observation_size = (1 + 5 + 5 + 3 + 8 + 6 + 2)  # 27 features + 1 for position
 agent = MixedEmbeddedAgent(mapsize, envs, device, args.transformer_layers, args.feed_forward_neurons,
                            args.attention_heads, args.input_padding, args.embed_size).to(device)
 agent.network_size()
