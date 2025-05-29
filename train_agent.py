@@ -144,7 +144,7 @@ for update in range(starting_update, num_updates + 1):
     # TRY NOT TO MODIFY: prepare the execution of the game.
     print('Playing...')
     for step in range(0, args.num_steps):
-        #envs.render()
+        envs.render()
         global_step += 1 * args.num_envs
         obs[step] = next_obs
         entity_masks[step] = next_entity_mask
@@ -197,12 +197,12 @@ for update in range(starting_update, num_updates + 1):
         #    java_valid_actions += [JArray(JArray(JInt))(java_valid_action)]
         #java_valid_actions = JArray(JArray(JArray(JInt)))(java_valid_actions)
         #debug("java_valid_actions: ", java_valid_actions)
-
+        
         flatten_action = np.full((args.num_envs ,args.map_size* args.map_size, 7), [0,0,0,0,0,0,0])
         act_ind = 0
         for e in range(args.num_envs):
             for cur_i in range(valid_actions_counts[e]):
-                flatten_action[e][valid_actions[act_ind][-1]] = valid_actions[act_ind][0:7][::-1] 
+                flatten_action[e][valid_actions[act_ind][0]] = valid_actions[act_ind][1:8]
                 act_ind+=1
         
         with torch.no_grad():
@@ -234,6 +234,7 @@ for update in range(starting_update, num_updates + 1):
                     else:
                         running_reward = win_reward
                     break
+        #os._exit(0)
     # bootstrap reward if not done. reached the batch limit
     with torch.no_grad():
         last_value = agent.get_value(next_obs.to(device),
@@ -380,6 +381,7 @@ for update in range(starting_update, num_updates + 1):
         writer.add_scalar("debug/pg_stop_iter", i_epoch_pi, global_step)
     writer.add_scalar("charts/sps", int(global_step / (time.time() - start_time)), global_step)
     print("Steps per sec:", int(global_step / (time.time() - start_time)))
+    
 
 envs.close()
 writer.close()
