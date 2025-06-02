@@ -17,6 +17,7 @@ from transformer_agent.mixed_embedded_agent import MixedEmbeddedAgent, reshape_o
 from transformer_agent.weighted_agent import WeightedAgent, reshape_observation_extended
 from jpype.types import JArray, JInt
 
+# If the original video recorder works, you can let itt False. 
 record_video = True
 
 def make_if_not_exists(directory: str):

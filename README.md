@@ -1,6 +1,6 @@
 # Transformers as Policies for Variable Action Environments
 This is the repository associated with the research paper "Transformers as Policies for Variable Action Environments" ([paper](https://arxiv.org/abs/2301.03679), [presentation](https://docs.google.com/presentation/d/1I3T6ury_nIIas1JX1hEWI_qm8Tnf0lmRx0Sukh1phVs/edit?usp=sharing)) presented at the 18th AAAI Conference on Artificial Intelligence and Interactive Digital Entertainment ([AIIDE-22](https://sites.google.com/view/aiide-2022/?pli=1)) - Strategy games. 
-It describes a scalable transformer architecture that is used to train an RL agent in the [Micro-RTS environment](https://github.com/Farama-Foundation/MicroRTS-Py), which has managed to outperform other RL agents in this variable action environment in terms of computational cost and episodic return.
+It describes a scalable transformer architecture that is used to train an RL agent in the [Micro-RTS environment](https://github.com/Farama-Foundation/MicroRTS-Py), which has managed to outperform other RL agents in this variable action environment in terms of computational cost and episodic return. The version of the game environment is updated to 6.0.0 which support multiple maps and terrian observation. For detail, please refer to the environment repository.
 We provide installation and running instructions in the following sections.
 
 
@@ -13,6 +13,10 @@ Install dependencies with `pip install -r requirements.txt --extra-index-url htt
 
 Note here that we assume a CUDA version 11.3 for GPU-based training. To disable the GPU usage or upgrade the dependency,
 you will need to modify `requirements.txt`.
+
+The environment require gym 0.21.0. The installation of this gym version may be broken and I recommed to use this configuration 
+`pip install setuptools==65.5.0 pip==21`
+`pip install wheel==0.38.0`
 
 ## Training
 During training, we use [Weights and Biases](https://wandb.ai/) to checkpoint and monitor the agent. 
@@ -72,15 +76,13 @@ We also provide the generated output evaluation under [evaluation](evaluation).
 
 ## Cite this Repository
 This paper is still waiting for the publisher to release the notebook. For now, please cite as:
-```
-@misc{zwingenberger2023transformers,
-      title={Transformers as Policies for Variable Action Environments}, 
-      author={Niklas Zwingenberger},
-      year={2023},
-      eprint={2301.03679},
-      archivePrefix={arXiv},
-      primaryClass={cs.AI}
-}
-```
 
 
+## Modules
+`DRL_Final/map_generator.py` and `DRL_Final/map_generator_test.py`: \
+To use our custom map maker, modify `save_path` in `DRL_Final/map_generator.py` first, then modify `DRL_Final/map_generator_test.py` to design your own map according to the provided example.
+
+## Models
+Our trained models are located in `DRL_Final/latest_models`, the 16x16 models are still performing pretty badly though.
+The expected skill of baseline agents in the `basesWorkers16x16` map is also provided below: \
+![](/bot_skill.png)
