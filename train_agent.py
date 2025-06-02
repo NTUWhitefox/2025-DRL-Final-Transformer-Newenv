@@ -144,7 +144,7 @@ for update in range(starting_update, num_updates + 1):
     # TRY NOT TO MODIFY: prepare the execution of the game.
     print('Playing...')
     for step in range(0, args.num_steps):
-        envs.render()
+        #envs.render()
         global_step += 1 * args.num_envs
         obs[step] = next_obs
         entity_masks[step] = next_entity_mask

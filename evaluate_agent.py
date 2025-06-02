@@ -17,6 +17,7 @@ from transformer_agent.mixed_embedded_agent import MixedEmbeddedAgent, reshape_o
 from transformer_agent.weighted_agent import WeightedAgent, reshape_observation_extended
 from jpype.types import JArray, JInt
 
+record_video = True
 
 def make_if_not_exists(directory: str):
     if not os.path.exists(directory):
@@ -168,36 +169,39 @@ if args.prod_mode:
     writer = SummaryWriter(f"/tmp/{experiment_name}")
 
 # TRY NOT TO MODIFY: seeding
-device = torch.device('cuda' if torch.cuda.is_available() and args.cuda else 'cpu')
+device = torch.device('cpu')
 random.seed(args.seed)
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 torch.backends.cudnn.deterministic = args.torch_deterministic
 
 all_ais = {
-    "guidedRojoA3N": microrts_ai.guidedRojoA3N,
-    "randomBiasedAI": microrts_ai.randomBiasedAI,
-    "randomAI": microrts_ai.randomAI,
-    "passiveAI": microrts_ai.passiveAI,
-    "workerRushAI": microrts_ai.workerRushAI,
-    "lightRushAI": microrts_ai.lightRushAI,
+    #"guidedRojoA3N": microrts_ai.guidedRojoA3N,
+    #"randomBiasedAI": microrts_ai.randomBiasedAI,
+    #"randomAI": microrts_ai.randomAI,
+    #"passiveAI": microrts_ai.passiveAI,
+    #"workerRushAI": microrts_ai.workerRushAI,
+    #"lightRushAI": microrts_ai.lightRushAI,
     "coacAI": microrts_ai.coacAI,
-    "naiveMCTSAI": microrts_ai.naiveMCTSAI,
-    "mixedBot": microrts_ai.mixedBot,
-    "rojo": microrts_ai.rojo,
-    "izanagi": microrts_ai.izanagi,
-    "tiamat": microrts_ai.tiamat,
-    "droplet": microrts_ai.droplet,
+    #"naiveMCTSAI": microrts_ai.naiveMCTSAI,
+    #"mixedBot": microrts_ai.mixedBot,
+    #"rojo": microrts_ai.rojo,
+    #"izanagi": microrts_ai.izanagi,
+    #"tiamat": microrts_ai.tiamat,
+    #"droplet": microrts_ai.droplet,
+    #"mayari": microrts_ai.mayari
 }
 ai_names, ais = list(all_ais.keys()), list(all_ais.values())
 ai_match_stats = dict(zip(ai_names, np.zeros((len(ais), 3))))
 args.num_envs = len(ais)
 ai_envs = []
 
+
+
 if args.map_size == 8:
-    map_path = "maps/8x8/basesWorkers8x8.xml"
+    map_paths = ["maps/custom/LHR2_r1_test.xml" ]
 elif args.map_size == 16:
-    map_path = "maps/16x16/basesWorkers16x16.xml"
+    map_paths = ["maps/16x16/basesWorkers16x16.xml"]
 else:
     raise Exception(f'Unsupported map size {args.map_size}')
 
@@ -208,7 +212,7 @@ for i in range(len(ais)):
         max_steps=args.max_steps,
         render_theme=2,
         ai2s=[ais[i]],
-        map_path=map_path,
+        map_paths=map_paths,
         reward_weight=np.array([10.0, 1.0, 1.0, 0.2, 1.0, 4.0])
     )
     env = MicroRTSStatsRecorder(env)
@@ -260,7 +264,7 @@ entity_counts = mapsize * [0]
 for envs_idx, env in enumerate(ai_envs):
     next_done = torch.zeros(args.num_envs).to(device)
 
-
+    frames = []
     for g in range(args.num_eval_runs):
         next_obs, next_entity_mask, next_entity_count, next_unit_position, next_unit_mask, next_enemy_unit_mask, next_neutral_unit_mask = \
             feature_map(torch.Tensor(env.reset()).to(device), device)
@@ -268,9 +272,14 @@ for envs_idx, env in enumerate(ai_envs):
         done = False
         if args.record_video:
             env.start_video_recorder(g + 1)
-
+        
         while not done:
-            env.render()
+            if record_video:
+                frame = env.render(mode = 'rgb_array')
+                frames.append(frame)
+            else:
+                env.render()
+                pass
             # ALGO LOGIC: put action logic here
             with torch.no_grad():
                 action, logproba, _, invalid_action_mask = agent.get_action(next_obs,
@@ -293,18 +302,26 @@ for envs_idx, env in enumerate(ai_envs):
             real_action = real_action.cpu().numpy()
             valid_actions = real_action[invalid_action_mask[:, :, 0].bool().cpu().numpy()]
             valid_actions_counts = invalid_action_mask[:, :, 0].sum(1).long().cpu().numpy()
-            java_valid_actions = []
-            valid_action_idx = 0
-            for env_idx, valid_action_count in enumerate(valid_actions_counts):
-                java_valid_action = []
-                for c in range(valid_action_count):
-                    java_valid_action += [JArray(JInt)(valid_actions[valid_action_idx])]
-                    valid_action_idx += 1
-                java_valid_actions += [JArray(JArray(JInt))(java_valid_action)]
-            java_valid_actions = JArray(JArray(JArray(JInt)))(java_valid_actions)
+            #java_valid_actions = []
+            #valid_action_idx = 0
+            #for env_idx, valid_action_count in enumerate(valid_actions_counts):
+            #    java_valid_action = []
+            #    for c in range(valid_action_count):
+            #        java_valid_action += [JArray(JInt)(valid_actions[valid_action_idx])]
+            #        valid_action_idx += 1
+            #    java_valid_actions += [JArray(JArray(JInt))(java_valid_action)]
+            #java_valid_actions = JArray(JArray(JArray(JInt)))(java_valid_actions)
+
+            flatten_action = np.full((args.num_envs ,args.map_size* args.map_size, 7), [0,0,0,0,0,0,0])
+            act_ind = 0
+            for e in range(args.num_envs):
+                for cur_i in range(valid_actions_counts[e]):
+                    flatten_action[e][valid_actions[act_ind][0]] = valid_actions[act_ind][1:8]
+                    act_ind+=1
 
             try:
-                raw_obs, rs, ds, infos = env.step(java_valid_actions)
+                env.get_action_mask()
+                raw_obs, rs, ds, infos = env.step(flatten_action)
                 next_obs, next_entity_mask, next_entity_count, next_unit_position, next_unit_mask, next_enemy_unit_mask, next_neutral_unit_mask = \
                     feature_map(torch.Tensor(raw_obs).to(device), device)
                 entity_counts[next_entity_count.cpu().numpy()[0]] += 1
@@ -336,13 +353,23 @@ for envs_idx, env in enumerate(ai_envs):
                 if args.record_video:
                     env.close_video_recorder()
 
-        for (label, val) in zip(["loss", "tie", "win"], ai_match_stats[ai_names[envs_idx]]):
-            writer.add_scalar(f"charts/{ai_names[envs_idx]}/{label}", val, 0)
-        if args.prod_mode and args.record_video:
-            video_files = glob.glob(f'videos/{experiment_name}/{ai_names[envs_idx]}/*.mp4')
-            for video_file in video_files:
-                print(video_file)
-                wandb.log({f"RL agent against {ai_names[envs_idx]}": wandb.Video(video_file)})
+        #or (label, val) in zip(["loss", "tie", "win"], ai_match_stats[ai_names[envs_idx]]):
+        #    writer.add_scalar(f"charts/{ai_names[envs_idx]}/{label}", val, 0)
+        if args.record_video:
+            pass
+            #store frames to video
+            #video_files = glob.glob(f'videos/{experiment_name}/{ai_names[envs_idx]}/*.mp4')
+            #for video_file in video_files:
+            #    print(video_file)
+            #    wandb.log({f"RL agent against {ai_names[envs_idx]}": wandb.Video(video_file)})
+    if record_video:
+        import imageio
+        #reader = imageio.get_reader(f'./demo/{args.experiment_name}.mp4')
+        fps = 60
+        with imageio.get_writer(f'./demo/{args.exp_name}.mp4', fps=fps) as writer:
+            for frame in frames:
+                #frame = frame[:,:,::-1]
+                writer.append_data(frame)
 
 print(ai_match_stats)
 n_rows, n_cols = 3, 5
